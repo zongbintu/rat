@@ -1,0 +1,948 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>可转债下修底价计算</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f7f3;
+        --surface: #ffffff;
+        --surface-soft: #f1f5f2;
+        --ink: #1f2a28;
+        --muted: #66736f;
+        --line: #dce3de;
+        --primary: #186b5f;
+        --primary-strong: #0f4f46;
+        --accent: #b95c38;
+        --danger: #a12d2a;
+        --danger-bg: #fff0ef;
+        --focus: rgba(24, 107, 95, 0.16);
+        --shadow: 0 18px 42px rgba(31, 42, 40, 0.1);
+        font-family:
+          Inter, "PingFang SC", "Microsoft YaHei", system-ui, -apple-system,
+          BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        color: var(--ink);
+        background:
+          linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.82),
+            rgba(246, 247, 243, 0.92)
+          ),
+          var(--bg);
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      .shell {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 36px 0;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 28px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        flex: 0 0 auto;
+        border-radius: 8px;
+        color: #fff;
+        background: var(--primary);
+        box-shadow: 0 10px 22px rgba(24, 107, 95, 0.2);
+      }
+
+      .brand-mark svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(24px, 3vw, 36px);
+        font-weight: 760;
+        letter-spacing: 0;
+        line-height: 1.14;
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.35fr);
+        gap: 20px;
+        align-items: start;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .input-panel {
+        padding: 22px;
+      }
+
+      .panel-title {
+        margin: 0 0 18px;
+        font-size: 18px;
+        font-weight: 720;
+        letter-spacing: 0;
+      }
+
+      .field {
+        position: relative;
+        display: grid;
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+
+      label {
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 680;
+      }
+
+      .control {
+        width: 100%;
+        min-height: 48px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0 14px;
+        color: var(--ink);
+        background: #fff;
+        outline: none;
+        transition:
+          border-color 160ms ease,
+          box-shadow 160ms ease;
+      }
+
+      .control:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px var(--focus);
+      }
+
+      .search-wrap {
+        position: relative;
+      }
+
+      .search-input {
+        padding-right: 42px;
+      }
+
+      .search-icon {
+        position: absolute;
+        top: 50%;
+        right: 14px;
+        width: 18px;
+        height: 18px;
+        color: var(--muted);
+        transform: translateY(-50%);
+        pointer-events: none;
+      }
+
+      .suggestions {
+        position: absolute;
+        z-index: 5;
+        top: calc(100% + 6px);
+        right: 0;
+        left: 0;
+        display: none;
+        max-height: 248px;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: 0 16px 30px rgba(31, 42, 40, 0.14);
+      }
+
+      .suggestions.is-open {
+        display: block;
+      }
+
+      .suggestion {
+        display: grid;
+        width: 100%;
+        grid-template-columns: 74px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        min-height: 48px;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        padding: 9px 12px;
+        text-align: left;
+        color: var(--ink);
+        background: transparent;
+        cursor: pointer;
+      }
+
+      .suggestion:last-child {
+        border-bottom: 0;
+      }
+
+      .suggestion:hover,
+      .suggestion:focus {
+        background: var(--surface-soft);
+        outline: none;
+      }
+
+      .suggestion-code {
+        font-variant-numeric: tabular-nums;
+        font-weight: 760;
+      }
+
+      .suggestion-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .tag {
+        border-radius: 999px;
+        padding: 4px 8px;
+        color: var(--primary-strong);
+        background: #e5f0ec;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 24px;
+      }
+
+      .btn {
+        display: inline-flex;
+        min-height: 46px;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        padding: 0 16px;
+        cursor: pointer;
+        transition:
+          transform 160ms ease,
+          box-shadow 160ms ease,
+          background 160ms ease;
+      }
+
+      .btn:disabled {
+        cursor: progress;
+        opacity: 0.74;
+      }
+
+      .btn:active {
+        transform: translateY(1px);
+      }
+
+      .btn-primary {
+        flex: 1;
+        color: #fff;
+        background: var(--primary);
+        box-shadow: 0 12px 22px rgba(24, 107, 95, 0.2);
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        background: var(--primary-strong);
+      }
+
+      .btn svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .message {
+        display: none;
+        margin: 16px 0 0;
+        border-radius: 8px;
+        padding: 10px 12px;
+        color: var(--primary-strong);
+        background: #e5f0ec;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .message.is-visible {
+        display: block;
+      }
+
+      .message.is-error {
+        color: var(--danger);
+        background: var(--danger-bg);
+      }
+
+      .result-panel {
+        overflow: hidden;
+      }
+
+      .result-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        border-bottom: 1px solid var(--line);
+        padding: 20px 22px;
+      }
+
+      .result-title {
+        min-width: 0;
+      }
+
+      .result-title h2 {
+        margin: 0 0 4px;
+        font-size: 20px;
+        line-height: 1.2;
+        letter-spacing: 0;
+      }
+
+      .result-title p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .status-pill {
+        flex: 0 0 auto;
+        border-radius: 999px;
+        padding: 7px 10px;
+        color: #7a381f;
+        background: #fff0e7;
+        font-size: 13px;
+        font-weight: 760;
+      }
+
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1px;
+        background: var(--line);
+      }
+
+      .metric {
+        min-height: 108px;
+        padding: 18px;
+        background: var(--surface);
+      }
+
+      .metric-label {
+        margin: 0 0 10px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 680;
+        line-height: 1.35;
+      }
+
+      .metric-value {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 780;
+        letter-spacing: 0;
+        line-height: 1.1;
+        word-break: break-word;
+      }
+
+      .metric-value.accent {
+        color: var(--accent);
+      }
+
+      .table-wrap {
+        max-height: 420px;
+        overflow: auto;
+      }
+
+      table {
+        width: 100%;
+        min-width: 0;
+        border-collapse: collapse;
+        table-layout: auto;
+      }
+
+      th,
+      td {
+        border-top: 1px solid var(--line);
+        padding: 13px 16px;
+        text-align: left;
+        overflow-wrap: anywhere;
+        white-space: normal;
+      }
+
+      th {
+        position: sticky;
+        z-index: 1;
+        top: 0;
+        color: var(--muted);
+        background: #fbfcfa;
+        font-size: 13px;
+        font-weight: 720;
+      }
+
+      td {
+        font-size: 15px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .empty {
+        display: none;
+        min-height: 360px;
+        place-items: center;
+        padding: 28px;
+        text-align: center;
+      }
+
+      .empty.is-visible {
+        display: grid;
+      }
+
+      .empty-icon {
+        display: grid;
+        width: 58px;
+        height: 58px;
+        place-items: center;
+        margin: 0 auto 12px;
+        border-radius: 8px;
+        color: var(--primary);
+        background: #e5f0ec;
+      }
+
+      .empty-icon svg {
+        width: 30px;
+        height: 30px;
+      }
+
+      .empty p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+      }
+
+      @media (max-width: 840px) {
+        .shell {
+          width: min(100% - 24px, 680px);
+          padding: 24px 0;
+        }
+
+        .topbar {
+          align-items: flex-start;
+          flex-direction: column;
+          margin-bottom: 20px;
+        }
+
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .shell {
+          width: calc(100% - 20px);
+          padding: 18px 0;
+        }
+
+        .brand-mark {
+          width: 38px;
+          height: 38px;
+        }
+
+        .input-panel,
+        .result-head {
+          padding: 18px;
+        }
+
+        .result-head {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .metric-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .metric {
+          min-height: 92px;
+          padding: 14px;
+        }
+
+        .metric-value {
+          font-size: 24px;
+        }
+
+        th,
+        td {
+          padding: 11px 10px;
+          font-size: 13px;
+        }
+
+        .actions {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M5 17.5h14"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+              <path
+                d="M6.5 14 10 10.5l3 2.5 4.5-6"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M17.5 7h-4"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+              <path
+                d="M17.5 7v4"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+          </span>
+          <h1>可转债下修底价计算</h1>
+        </div>
+      </header>
+
+      <section class="workspace" aria-label="可转债下修底价计算">
+        <form class="panel input-panel" id="queryForm" autocomplete="off">
+          <h2 class="panel-title">查询条件</h2>
+
+          <div class="field">
+            <label for="securityInput">正股代码</label>
+            <div class="search-wrap">
+              <input
+                class="control search-input"
+                id="securityInput"
+                name="security"
+                inputmode="search"
+                maxlength="20"
+                placeholder="输入 6 位代码或名称"
+                aria-controls="suggestions"
+                aria-expanded="false"
+              />
+              <svg
+                class="search-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="m21 21-4.2-4.2"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+                <circle
+                  cx="11"
+                  cy="11"
+                  r="7"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+              </svg>
+              <div class="suggestions" id="suggestions" role="listbox"></div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="dateInput">基准日期</label>
+            <input class="control" id="dateInput" name="date" type="date" />
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-primary" id="calculateButton" type="submit">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M5 12h14"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="m13 6 6 6-6 6"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              计算下修底价
+            </button>
+          </div>
+
+          <p class="message" id="statusMessage" aria-live="polite"></p>
+        </form>
+
+        <section class="panel result-panel" aria-live="polite">
+          <div class="empty is-visible" id="emptyState">
+            <div>
+              <span class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M4 19V5"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                  <path
+                    d="M4 19h16"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                  <path
+                    d="M8 15l3-3 3 2 5-7"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </span>
+              <p>等待计算结果</p>
+            </div>
+          </div>
+
+          <div id="resultContent" hidden>
+            <div class="result-head">
+              <div class="result-title">
+                <h2 id="resultName">-</h2>
+                <p id="resultMeta">-</p>
+              </div>
+              <span class="status-pill" id="resultBadge">已计算</span>
+            </div>
+
+            <div class="metric-grid">
+              <div class="metric">
+                <p class="metric-label">前20交易日均价</p>
+                <p class="metric-value" id="avg20">-</p>
+              </div>
+              <div class="metric">
+                <p class="metric-label">前1交易日均价</p>
+                <p class="metric-value" id="avg1">-</p>
+              </div>
+              <div class="metric">
+                <p class="metric-label">下修底价</p>
+                <p class="metric-value accent" id="floorPrice">-</p>
+              </div>
+              <div class="metric">
+                <p class="metric-label">到底转股价值</p>
+                <p class="metric-value accent" id="cbValue">-</p>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>交易日期</th>
+                    <th>成交量(万股)</th>
+                    <th>成交金额(万元)</th>
+                  </tr>
+                </thead>
+                <tbody id="basisRows"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      const state = {
+        securities: [],
+        selectedSecurity: null,
+        loading: false,
+      };
+
+      const today = new Date();
+      const dateValue = [
+        today.getFullYear(),
+        String(today.getMonth() + 1).padStart(2, "0"),
+        String(today.getDate()).padStart(2, "0"),
+      ].join("-");
+
+      const dateInput = document.querySelector("#dateInput");
+      const securityInput = document.querySelector("#securityInput");
+      const suggestions = document.querySelector("#suggestions");
+      const form = document.querySelector("#queryForm");
+      const calculateButton = document.querySelector("#calculateButton");
+      const statusMessage = document.querySelector("#statusMessage");
+      const emptyState = document.querySelector("#emptyState");
+      const resultContent = document.querySelector("#resultContent");
+      const basisRows = document.querySelector("#basisRows");
+
+      dateInput.value = dateValue;
+
+      function setMessage(text, type = "info") {
+        statusMessage.textContent = text;
+        statusMessage.classList.toggle("is-visible", Boolean(text));
+        statusMessage.classList.toggle("is-error", type === "error");
+      }
+
+      function setLoading(isLoading) {
+        state.loading = isLoading;
+        calculateButton.disabled = isLoading;
+        calculateButton.lastChild.textContent = isLoading
+          ? " 计算中"
+          : " 计算下修底价";
+      }
+
+      async function loadSecurities() {
+        try {
+          const response = await fetch("/data/convertible_bond_stocks.json", {
+            cache: "force-cache",
+          });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const data = await response.json();
+          state.securities = data
+            .filter((item) => item && item.code && item.name)
+            .map((item) => ({
+              code: String(item.code),
+              name: String(item.name),
+            }));
+
+          if (state.securities.length > 0) {
+            state.selectedSecurity = state.securities[0];
+          }
+        } catch (error) {
+          setMessage("代码列表加载失败，可直接输入 6 位代码计算。", "error");
+        }
+      }
+
+      function findMatches(value) {
+        const keyword = value.trim().toLowerCase();
+        const source = state.securities;
+        if (!keyword) {
+          return source.slice(0, 8);
+        }
+        return source
+          .filter(
+            (item) =>
+              item.code.includes(keyword) ||
+              item.name.toLowerCase().includes(keyword),
+          )
+          .slice(0, 8);
+      }
+
+      function renderSuggestions(items) {
+        suggestions.replaceChildren();
+        items.forEach((item) => {
+          const option = document.createElement("button");
+          const code = document.createElement("span");
+          const name = document.createElement("span");
+          const tag = document.createElement("span");
+
+          option.type = "button";
+          option.className = "suggestion";
+          option.setAttribute("role", "option");
+
+          code.className = "suggestion-code";
+          code.textContent = item.code;
+          name.className = "suggestion-name";
+          name.textContent = item.name;
+          tag.className = "tag";
+          tag.textContent = "正股";
+
+          option.append(code, name, tag);
+          option.addEventListener("click", () => chooseSecurity(item));
+          suggestions.appendChild(option);
+        });
+
+        suggestions.classList.toggle("is-open", items.length > 0);
+        securityInput.setAttribute("aria-expanded", String(items.length > 0));
+      }
+
+      function chooseSecurity(item) {
+        state.selectedSecurity = item;
+        securityInput.value = item.code;
+        suggestions.classList.remove("is-open");
+        securityInput.setAttribute("aria-expanded", "false");
+      }
+
+      function resolveCode() {
+        const entered = securityInput.value.trim();
+        const exact = state.securities.find((item) => item.code === entered);
+        if (exact) {
+          state.selectedSecurity = exact;
+          return exact.code;
+        }
+
+        if (
+          state.selectedSecurity &&
+          (entered === state.selectedSecurity.name ||
+            entered === state.selectedSecurity.code)
+        ) {
+          return state.selectedSecurity.code;
+        }
+
+        if (/^\d{6}$/.test(entered)) {
+          return entered;
+        }
+
+        return "";
+      }
+
+      function updateResult(data) {
+        emptyState.classList.remove("is-visible");
+        resultContent.hidden = false;
+
+        const metaParts = [
+          data.code,
+          `基准日 ${data.baseDate || dateInput.value}`,
+          `前一交易日 ${data.previousTradeDate}`,
+        ];
+
+        document.querySelector("#resultName").textContent =
+          data.name || data.code;
+        document.querySelector("#resultMeta").textContent =
+          metaParts.join(" · ");
+        document.querySelector("#avg20").textContent = data.avg20;
+        document.querySelector("#avg1").textContent = data.avg1;
+        document.querySelector("#floorPrice").textContent = data.floorPrice;
+        document.querySelector("#cbValue").textContent = data.cbValue;
+        document.querySelector("#resultBadge").textContent = "已计算";
+
+        renderTableRows(data.tableRows || []);
+      }
+
+      function renderTableRows(rows) {
+        basisRows.replaceChildren();
+        if (rows.length === 0) {
+          const row = document.createElement("tr");
+          const cell = document.createElement("td");
+          cell.colSpan = 3;
+          cell.textContent = "暂无成交数据";
+          row.appendChild(cell);
+          basisRows.appendChild(row);
+          return;
+        }
+
+        rows.forEach((item) => {
+          const row = document.createElement("tr");
+          [item.date, item.volume, item.amount].forEach((value) => {
+            const cell = document.createElement("td");
+            cell.textContent = value || "-";
+            row.appendChild(cell);
+          });
+          basisRows.appendChild(row);
+        });
+      }
+
+      async function calculate() {
+        const code = resolveCode();
+        if (!code) {
+          setMessage("请输入 6 位正股代码。", "error");
+          return;
+        }
+
+        setLoading(true);
+        setMessage("");
+
+        try {
+          const params = new URLSearchParams({
+            code,
+            date: dateInput.value || dateValue,
+          });
+          const response = await fetch(`/api/calculate?${params.toString()}`);
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || "计算失败");
+          }
+
+          const matched = state.securities.find((item) => item.code === code);
+          if (matched) {
+            chooseSecurity(matched);
+          } else {
+            securityInput.value = code;
+          }
+          updateResult(data);
+        } catch (error) {
+          setMessage(error.message || "计算失败，请稍后重试。", "error");
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      securityInput.addEventListener("input", (event) => {
+        const value = event.target.value;
+        const exact = state.securities.find((item) => item.code === value);
+        if (exact) {
+          state.selectedSecurity = exact;
+        }
+        renderSuggestions(findMatches(value));
+      });
+
+      securityInput.addEventListener("focus", () => {
+        renderSuggestions(findMatches(securityInput.value));
+      });
+
+      document.addEventListener("click", (event) => {
+        if (!event.target.closest(".search-wrap")) {
+          suggestions.classList.remove("is-open");
+          securityInput.setAttribute("aria-expanded", "false");
+        }
+      });
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        calculate();
+      });
+
+      loadSecurities();
+    </script>
+  </body>
+</html>

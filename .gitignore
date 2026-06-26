@@ -1,0 +1,12 @@
+.codex
+.DS_Store
+
+
+# Frontend
+node_modules/
+
+# Packaging
+__pycache__
+logs
+storage
+.wrangler/

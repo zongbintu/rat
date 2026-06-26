@@ -1,0 +1,14 @@
+{
+  "name": "rat",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler pages dev .",
+    "deploy": "wrangler pages deploy . --project-name rat",
+    "test:api": "node scripts/test-calculate.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.105.0"
+  }
+}
