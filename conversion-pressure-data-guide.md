@@ -59,17 +59,17 @@ date,stock_code,bond_code,stock_close,stock_volume,turnover_rate,free_float_shar
 
 | 数据项 | 首选来源 | 备选来源 | 注意事项 |
 | --- | --- | --- | --- |
-| 交易日期 | 沪深交易所交易日历 | AkShare、Tushare、东方财富交易日历 | 需要排除周末和节假日 |
-| 正股收盘价 | 深交所市场行情、上交所行情数据 | 东方财富、腾讯财经、新浪财经、AkShare、Tushare | 深市正股优先用深交所官网，长周期建议使用前复权价 |
-| 正股成交量 | 深交所市场行情、上交所行情数据 | 东方财富、腾讯财经、新浪财经、AkShare、Tushare | 统一成“万股” |
-| 正股成交额 | 深交所市场行情、上交所行情数据 | 东方财富、腾讯财经、新浪财经、AkShare、Tushare | 统一成“万元” |
-| 正股涨跌幅 | 深交所市场行情、上交所行情数据 | 东方财富、腾讯财经、新浪财经、AkShare、Tushare | 统一成百分比数值 |
-| 正股换手率 | 东方财富、Tushare、AkShare | 自己用成交量/流通股本计算 | 口径要固定 |
+| 交易日期 | 深交所市场行情、上交所股票信息页 | AkShare、Tushare、东方财富交易日历 | 需要排除周末和节假日 |
+| 正股收盘价 | 深交所市场行情、上交所股票信息页 | 东方财富、腾讯财经、新浪财经、AkShare、Tushare | 深市正股优先用深交所官网，沪市正股优先用上交所官网；长周期建议使用前复权价 |
+| 正股成交量 | 深交所市场行情、上交所股票信息页 | 东方财富、腾讯财经、新浪财经、AkShare、Tushare | 统一成“万股” |
+| 正股成交额 | 深交所市场行情、上交所股票信息页 | 东方财富、腾讯财经、新浪财经、AkShare、Tushare | 统一成“万元” |
+| 正股涨跌幅 | 深交所市场行情、上交所股票信息页 | 东方财富、腾讯财经、新浪财经、AkShare、Tushare | 统一成百分比数值 |
+| 正股换手率 | 上交所股票信息页、东方财富、Tushare、AkShare | 自己用成交量/流通股本计算 | 沪市可优先取上交所官网；口径要固定 |
 | 流通股本 | 上市公司定期报告、交易所资料 | 东方财富、Tushare、AkShare | 股本变动会影响换手率和稀释比例 |
 | 转股价 | 募集说明书、后续转股价格调整公告 | 巨潮资讯、上交所/深交所公告、东方财富 | 下修、分红送转后会变化 |
 | 剩余转债余额 | 转股结果公告、强赎公告、交易所债券信息 | 东方财富、集思录、Tushare、AkShare | 用于推导新增转股规模 |
 | 累计转股数量 | 转股结果暨股份变动公告 | 巨潮资讯、上交所/深交所公告、东方财富 | 官方公告频率不一定是日频 |
-| 每日新增转股数量 | 深交所可转债页面、日频剩余转债余额差分推导 | 第三方可转债数据、公司公告差分 | 深市可转债优先用深交所官方页面 |
+| 每日新增转股数量 | 深交所可转债页面、上交所可转债转股数据、日频剩余转债余额差分推导 | 第三方可转债数据、公司公告差分 | 深市优先用深交所，沪市优先用上交所 |
 | 强赎/下修/到期事件 | 公司公告 | 巨潮资讯、交易所公告、东方财富公告 | 事件会显著改变转股行为 |
 
 ## 4. 深交所每日转股数据
@@ -135,7 +135,75 @@ date,stock_code,stock_close,stock_volume,stock_amount,pct_change,stock_source
 - 涨跌幅建议保存为数值，例如 `-1.35`，不要保存成带百分号的字符串。
 - 如果后续要做长周期分析，仍需考虑是否改用前复权收盘价；深交所页面的日行情通常是原始收盘价。
 
-## 6. 每日新增转股数量的计算逻辑
+## 6. 上交所正股行情数据
+
+沪市正股的交易日期、每日成交额、收盘价、换手率、涨跌幅，可以优先从上交所官网股票信息页获取：
+
+```text
+https://www.sse.com.cn/assortment/stock/list/info/company/index.shtml?COMPANY_CODE=600745
+```
+
+其中 `COMPANY_CODE` 替换成目标沪市正股代码。
+
+建议采集字段：
+
+| 页面字段 | 落表字段 | 建议单位 |
+| --- | --- | --- |
+| 交易日期 | `date` | `YYYY-MM-DD` |
+| 收盘价 | `stock_close` | 元 |
+| 成交额 | `stock_amount` | 万元 |
+| 换手率 | `turnover_rate` | % |
+| 涨跌幅 | `pct_change` | % |
+
+上交所行情数据落表建议：
+
+```csv
+date,stock_code,stock_close,stock_amount,turnover_rate,pct_change,stock_source
+2026-06-03,600745,12.38,112450,2.66,-1.35,SSE
+```
+
+注意：
+
+- 这个页面适用于沪市正股。深市正股仍优先使用深交所市场行情页面。
+- 如果页面没有直接提供成交量，但提供成交额、收盘价和换手率，可以先满足当前图表中的价格、成交额、换手率和涨跌幅需求；需要成交量时再从其他官方或第三方行情源补齐。
+- 成交额统一保存为“万元”，涨跌幅和换手率保存为数值，例如 `-1.35`、`2.66`。
+- 长周期分析仍需确认是否使用前复权收盘价；上交所页面通常是原始行情口径。
+
+## 7. 上交所可转债转股数据
+
+沪市可转债的转股数据，可以优先从上交所官网获取：
+
+```text
+https://www.sse.com.cn/market/bonddata/convertible/
+```
+
+建议采集字段：
+
+| 页面字段 | 落表字段 | 建议单位 |
+| --- | --- | --- |
+| 转债代码 | `bond_code` | 6 位代码 |
+| 转债简称 | `bond_name` | 文本 |
+| 转股日期 | `date` | `YYYY-MM-DD` |
+| 转股价格 | `conversion_price` | 元 |
+| 当日转股数量/金额 | `new_conversion_shares` 或中间字段 | 统一换算成万股 |
+| 累计转股数量/比例 | `cum_conversion_shares`、`accumulated_conversion_ratio` | 万股、% |
+| 剩余转债余额 | `remaining_bond_balance` | 元 |
+
+上交所可转债转股数据落表建议：
+
+```csv
+date,bond_code,bond_name,conversion_price,new_conversion_shares,cum_conversion_shares,remaining_bond_balance,conversion_source
+2026-06-03,110000,示例转债,11.80,104.20,1820.35,1231474000,SSE
+```
+
+注意：
+
+- 如果上交所页面直接提供“当日转股股数”，优先直接使用，并统一成“万股”。
+- 如果页面提供的是“当日转股金额”“转股债券面额”或“剩余转债余额”，需要按页面单位先换算，再推导 `new_conversion_shares`。
+- 如果同一天既能直接取到当日转股数量，又能用余额差分校验，优先使用官方直接字段，并保留差分结果用于检查异常。
+- 采集时建议保存 `conversion_source = SSE`。
+
+## 8. 每日新增转股数量的计算逻辑
 
 如果能拿到每日剩余转债余额，可以这样计算：
 
@@ -157,7 +225,7 @@ date,stock_code,stock_close,stock_volume,stock_amount,pct_change,stock_source
 - 转股价发生调整时，必须使用当日有效转股价。
 - 如果只拿到月度或季度公告，只能得到区间新增转股，不能还原精确日频。
 
-## 7. 补齐步骤
+## 9. 补齐步骤
 
 ### 第一步：确定分析对象
 
@@ -300,7 +368,7 @@ volume_ratio_5d >= 1.25
 next_5d_return < 0
 ```
 
-## 8. 最终数据样例
+## 10. 最终数据样例
 
 ```csv
 date,stock_code,bond_code,stock_close,stock_volume,stock_amount,pct_change,turnover_rate,free_float_shares,conversion_price,remaining_bond_balance,new_conversion_shares,bond_close,conversion_premium_rate,event,stock_source,conversion_source
@@ -309,7 +377,7 @@ date,stock_code,bond_code,stock_close,stock_volume,stock_amount,pct_change,turno
 2026-06-03,000001,127000,12.38,9080,112450,-1.35,2.66,340000,11.80,1231474000,104.20,119.72,10.21,强赎预期升温,SZSE,SZSE
 ```
 
-## 9. 先补哪些数据
+## 11. 先补哪些数据
 
 建议按这个顺序推进：
 
@@ -328,7 +396,7 @@ date,stock_code,bond_code,stock_close,stock_volume,stock_amount,pct_change,turno
 
 只要第 1 至第 8 项齐了，就可以从 mock demo 变成真实数据 demo。
 
-## 10. 需要人工确认的口径
+## 12. 需要人工确认的口径
 
 补数据前最好先确定这些口径：
 

@@ -267,6 +267,20 @@
         height: auto;
       }
 
+      .data-state {
+        display: grid;
+        min-height: 180px;
+        place-items: center;
+        padding: 24px;
+        color: var(--muted);
+        font-size: 14px;
+        text-align: center;
+      }
+
+      .data-state.is-error {
+        color: var(--red);
+      }
+
       .grid-line {
         stroke: var(--line);
         stroke-dasharray: 4 4;
@@ -447,7 +461,7 @@
             <p class="subtitle">真实样本：正股 ST龙大 002726，转债 128119。行情取自深交所行情接口，转股数据取自深交所可转债转股统计。</p>
           </div>
         </div>
-        <span class="badge">真实数据样本 · 2026-04-01 至 2026-06-26</span>
+        <span class="badge" id="dataBadge">正在加载真实数据源</span>
       </header>
 
       <section class="panel summary-grid" aria-label="压力摘要">
@@ -546,69 +560,19 @@
     </main>
 
     <script>
-      const realRows = [
-        { date: "2026-04-01", close: 3.29, volume: 2296.95, amount: 7563.46, pctChange: 0, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-04-02", close: 3.2, volume: 2476.37, amount: 8035.59, pctChange: -2.74, conversion: 0.12, conversionFaceAmount: 50, conversionPrice: 4.2, accumulatedConversionRatio: 0.42 },
-        { date: "2026-04-03", close: 3.07, volume: 2733.72, amount: 8513.73, pctChange: -4.06, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-04-07", close: 3.23, volume: 4010.37, amount: 12806.18, pctChange: 5.21, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-04-08", close: 3.24, volume: 3823.45, amount: 12334.26, pctChange: 0.31, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-04-09", close: 3.1, volume: 3689.67, amount: 11585.81, pctChange: -4.32, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-04-10", close: 3.08, volume: 2714.57, amount: 8439.16, pctChange: -0.65, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-04-13", close: 3.2, volume: 4003.55, amount: 12607.63, pctChange: 3.9, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-04-14", close: 3.27, volume: 4497.6, amount: 14515.03, pctChange: 2.19, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-04-15", close: 3.29, volume: 3379.33, amount: 10980.83, pctChange: 0.61, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-04-16", close: 3.62, volume: 4390.09, amount: 15889.8, pctChange: 10.03, conversion: 2.95, conversionFaceAmount: 1240, conversionPrice: 4.2, accumulatedConversionRatio: 0.43 },
-        { date: "2026-04-17", close: 3.49, volume: 11631.88, amount: 40379.32, pctChange: -3.59, conversion: 0.12, conversionFaceAmount: 50, conversionPrice: 4.2, accumulatedConversionRatio: 0.43 },
-        { date: "2026-04-20", close: 3.46, volume: 8546.96, amount: 29471.76, pctChange: -0.86, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-04-21", close: 3.33, volume: 5959.83, amount: 20030.86, pctChange: -3.76, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-04-22", close: 3.42, volume: 8694.66, amount: 30386.51, pctChange: 2.7, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-04-23", close: 3.15, volume: 6696, amount: 21701.29, pctChange: -7.89, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-04-24", close: 3.08, volume: 3739.3, amount: 11622.18, pctChange: -2.22, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-04-27", close: 3.02, volume: 3444.5, amount: 10353.08, pctChange: -1.95, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-04-28", close: 3.01, volume: 2620.81, amount: 7921.54, pctChange: -0.33, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-04-30", close: 2.86, volume: 126.71, amount: 362.39, pctChange: -4.98, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-05-06", close: 2.72, volume: 43.06, amount: 117.12, pctChange: -4.9, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-05-07", close: 2.58, volume: 67.14, amount: 173.22, pctChange: -5.15, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-05-08", close: 2.45, volume: 94.11, amount: 230.57, pctChange: -5.04, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-05-11", close: 2.33, volume: 154.12, amount: 359.1, pctChange: -4.9, conversion: 0.02, conversionFaceAmount: 10, conversionPrice: 4.2, accumulatedConversionRatio: 0.43 },
-        { date: "2026-05-12", close: 2.21, volume: 169.37, amount: 374.31, pctChange: -5.15, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-05-13", close: 2.13, volume: 8745.18, amount: 18400.52, pctChange: -3.62, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-05-14", close: 2.02, volume: 12528.6, amount: 25503.55, pctChange: -5.16, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-05-15", close: 1.92, volume: 3518.59, amount: 6781.11, pctChange: -4.95, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-05-18", close: 1.82, volume: 1911.53, amount: 3480, pctChange: -5.21, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-05-19", close: 1.83, volume: 7670.23, amount: 13744.91, pctChange: 0.55, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-05-20", close: 1.86, volume: 7629.2, amount: 13653.92, pctChange: 1.64, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-05-21", close: 1.77, volume: 4455.86, amount: 8043.49, pctChange: -4.84, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-05-22", close: 1.73, volume: 3179.03, amount: 5502.16, pctChange: -2.26, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-05-25", close: 1.64, volume: 3770.5, amount: 6274.3, pctChange: -5.2, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-05-26", close: 1.57, volume: 5074.03, amount: 7986.49, pctChange: -4.27, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-05-27", close: 1.65, volume: 6542.97, amount: 10650.83, pctChange: 5.1, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-05-28", close: 1.68, volume: 5432.87, amount: 8960.33, pctChange: 1.82, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-05-29", close: 1.71, volume: 6777.27, amount: 11814.13, pctChange: 1.79, conversion: 0, conversionFaceAmount: 2, conversionPrice: 4.2, accumulatedConversionRatio: 0.43 },
-        { date: "2026-06-01", close: 1.76, volume: 5967.27, amount: 9948.51, pctChange: 2.92, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-06-02", close: 1.77, volume: 5388.25, amount: 9485.29, pctChange: 0.57, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-06-03", close: 1.69, volume: 5004.96, amount: 8712.18, pctChange: -4.52, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-06-04", close: 1.69, volume: 3593.56, amount: 6091.49, pctChange: 0, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-06-05", close: 1.67, volume: 3560.25, amount: 5900.22, pctChange: -1.18, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-06-08", close: 1.59, volume: 3545.55, amount: 5720.8, pctChange: -4.79, conversion: 0.02, conversionFaceAmount: 10, conversionPrice: 4.2, accumulatedConversionRatio: 0.43 },
-        { date: "2026-06-09", close: 1.58, volume: 2258.77, amount: 3589.83, pctChange: -0.63, conversion: 0.05, conversionFaceAmount: 20, conversionPrice: 4.2, accumulatedConversionRatio: 0.43 },
-        { date: "2026-06-10", close: 1.5, volume: 2709.42, amount: 4101.31, pctChange: -5.06, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-06-11", close: 1.43, volume: 2625.59, amount: 3775.92, pctChange: -4.67, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-06-12", close: 1.45, volume: 4703.22, amount: 6674.19, pctChange: 1.4, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-06-15", close: 1.47, volume: 3232.31, amount: 4761.76, pctChange: 1.38, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-06-16", close: 1.54, volume: 3807.78, amount: 5686.38, pctChange: 4.76, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-06-17", close: 1.48, volume: 3655.55, amount: 5647.19, pctChange: -3.9, conversion: 0.02, conversionFaceAmount: 10, conversionPrice: 4.2, accumulatedConversionRatio: 0.43 },
-        { date: "2026-06-18", close: 1.5, volume: 3137.19, amount: 4681.09, pctChange: 1.35, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-06-22", close: 1.45, volume: 3087.52, amount: 4466.19, pctChange: -3.33, conversion: 0.12, conversionFaceAmount: 50, conversionPrice: 4.2, accumulatedConversionRatio: 0.43 },
-        { date: "2026-06-23", close: 1.52, volume: 2820.91, amount: 4237.63, pctChange: 4.83, conversion: 0, conversionFaceAmount: 0, conversionPrice: null, accumulatedConversionRatio: null },
-        { date: "2026-06-24", close: 1.44, volume: 2942.9, amount: 4343.65, pctChange: -5.26, conversion: 0, conversionFaceAmount: 1, conversionPrice: 4.2, accumulatedConversionRatio: 0.43 },
-        { date: "2026-06-25", close: 1.37, volume: 2365.48, amount: 3258.13, pctChange: -4.86, conversion: 6512.46, conversionFaceAmount: 1269930, conversionPrice: 1.95, accumulatedConversionRatio: 13.8 },
-        { date: "2026-06-26", close: 1.3, volume: 445.22, amount: 578.79, pctChange: -5.11, conversion: 1169.13, conversionFaceAmount: 227981, conversionPrice: 1.95, accumulatedConversionRatio: 16.2 },
-      ];
+      const demoConfig = {
+        stockCode: "002726",
+        bondCode: "128119",
+        startDate: "2026-04-01",
+      };
 
       const chart = document.querySelector("#chart");
       const keyRows = document.querySelector("#keyRows");
       const modeButtons = document.querySelectorAll("[data-mode]");
+      const dataBadge = document.querySelector("#dataBadge");
+      const subtitle = document.querySelector(".subtitle");
+      let rows = [];
+      let activeMode = "all";
 
       function format(value, digits = 2) {
         return Number(value).toLocaleString("zh-CN", {
@@ -662,9 +626,50 @@
         });
       }
 
-      const rows = enrichRows(realRows);
+      function setLoadingState(text) {
+        dataBadge.textContent = text;
+        chart.innerHTML = `<div class="data-state">${text}</div>`;
+        keyRows.replaceChildren();
+      }
 
-      function renderSummary() {
+      function setErrorState(message) {
+        dataBadge.textContent = "真实数据源加载失败";
+        chart.innerHTML = `<div class="data-state is-error">${message}</div>`;
+        keyRows.replaceChildren();
+      }
+
+      async function loadRealData() {
+        setLoadingState("正在从官方数据源读取数据...");
+
+        try {
+          const params = new URLSearchParams({
+            stock: demoConfig.stockCode,
+            bond: demoConfig.bondCode,
+            start: demoConfig.startDate,
+          });
+          const response = await fetch(`/api/conversion-pressure?${params}`);
+          const payload = await response.json();
+
+          if (!response.ok) {
+            throw new Error(payload.error || "真实数据源读取失败");
+          }
+
+          rows = enrichRows(payload.rows || []);
+          subtitle.textContent =
+            `真实样本：正股 ${payload.stockName} ${payload.stockCode}，转债 ${payload.bondName} ${payload.bondCode}。行情和转股统计均由官方数据源实时读取。`;
+          dataBadge.textContent = `真实数据源 · ${payload.startDate} 至 ${payload.endDate}`;
+          renderSummary(payload);
+          renderChart(activeMode);
+          renderTable();
+        } catch (error) {
+          setErrorState(error.message || "真实数据源读取失败");
+        }
+      }
+
+      function renderSummary(payload) {
+        if (rows.length === 0) {
+          return;
+        }
         const peak = rows.reduce((best, row) => (row.conversion > best.conversion ? row : best));
         const peakIndex = rows.findIndex((row) => row.date === peak.date);
         const post = rows[Math.min(rows.length - 1, peakIndex + 5)];
@@ -680,7 +685,7 @@
 
         document.querySelector("#peakDate").textContent = peak.date.slice(5);
         document.querySelector("#peakConversion").textContent =
-          `新增转股 ${format(peak.conversion)} 万股，转股价 ${peak.conversionPrice?.toFixed(2) || "-"} 元`;
+          `${payload?.bondName || demoConfig.bondCode} 新增转股 ${format(peak.conversion)} 万股，转股价 ${peak.conversionPrice?.toFixed(2) || "-"} 元`;
         document.querySelector("#postMove").textContent = `${postMove >= 0 ? "+" : ""}${postMove.toFixed(2)}%`;
         document.querySelector("#postClose").textContent = `${post.date.slice(5)} 收盘 ${post.close.toFixed(2)} 元`;
         document.querySelector("#volumeSpike").textContent = `${peak.volumeRatio.toFixed(2)}x`;
@@ -692,6 +697,10 @@
           mode === "pressure"
             ? rows.filter((row, index) => row.isPressure || rows[index - 1]?.isPressure || rows[index + 1]?.isPressure)
             : rows;
+        if (visibleRows.length === 0) {
+          chart.innerHTML = '<div class="data-state">暂无可绘制的数据</div>';
+          return;
+        }
         const width = 1080;
         const height = 440;
         const margin = { top: 30, right: 66, bottom: 66, left: 62 };
@@ -699,8 +708,8 @@
         const innerHeight = height - margin.top - margin.bottom;
         const priceMin = Math.min(...visibleRows.map((row) => row.close)) * 0.985;
         const priceMax = Math.max(...visibleRows.map((row) => row.close)) * 1.015;
-        const volumeMax = Math.max(...visibleRows.map((row) => row.volume));
-        const conversionMax = Math.max(...visibleRows.map((row) => row.conversion));
+        const volumeMax = Math.max(1, ...visibleRows.map((row) => row.volume));
+        const conversionMax = Math.max(1, ...visibleRows.map((row) => row.conversion));
         const band = innerWidth / visibleRows.length;
 
         const x = (index) => margin.left + (innerWidth * index) / Math.max(1, visibleRows.length - 1);
@@ -792,6 +801,15 @@
 
       function renderTable() {
         keyRows.replaceChildren();
+        if (rows.length === 0) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 10;
+          td.textContent = "暂无关键交易日数据";
+          tr.appendChild(td);
+          keyRows.appendChild(tr);
+          return;
+        }
         rows
           .filter((row) => row.isPressure || row.conversionFaceAmount > 0 || Math.abs(row.pctChange) >= 5)
           .forEach((row) => {
@@ -843,13 +861,12 @@
         button.addEventListener("click", () => {
           modeButtons.forEach((item) => item.classList.remove("is-active"));
           button.classList.add("is-active");
-          renderChart(button.dataset.mode);
+          activeMode = button.dataset.mode;
+          renderChart(activeMode);
         });
       });
 
-      renderSummary();
-      renderChart();
-      renderTable();
+      loadRealData();
     </script>
   </body>
 </html>
