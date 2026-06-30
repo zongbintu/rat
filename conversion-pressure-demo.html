@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ST龙大转股压力关系 Demo</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f6f2;
+        --surface: #ffffff;
+        --surface-soft: #f0f4f2;
+        --ink: #1f2a28;
+        --muted: #65736f;
+        --line: #dce4df;
+        --primary: #176b5d;
+        --primary-dark: #0f4f46;
+        --accent: #bd6239;
+        --blue: #3c6f9f;
+        --red: #a93632;
+        --amber: #f3c567;
+        --shadow: 0 18px 42px rgba(31, 42, 40, 0.1);
+        font-family:
+          Inter, "PingFang SC", "Microsoft YaHei", system-ui, -apple-system,
+          BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(245, 246, 242, 0.94)),
+          var(--bg);
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .shell {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 32px 0;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 18px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        flex: 0 0 auto;
+        border-radius: 8px;
+        color: #fff;
+        background: var(--primary);
+        box-shadow: 0 10px 22px rgba(23, 107, 93, 0.22);
+      }
+
+      .brand-mark svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(25px, 3vw, 36px);
+        line-height: 1.14;
+        letter-spacing: 0;
+      }
+
+      .subtitle {
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+
+      .badge {
+        flex: 0 0 auto;
+        border-radius: 999px;
+        padding: 7px 10px;
+        color: #7a381f;
+        background: #fff0e7;
+        font-size: 13px;
+        font-weight: 760;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1px;
+        overflow: hidden;
+        margin-bottom: 18px;
+        background: var(--line);
+      }
+
+      .summary-card {
+        min-height: 106px;
+        padding: 16px;
+        background: var(--surface);
+      }
+
+      .summary-card p {
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 680;
+      }
+
+      .summary-card strong {
+        display: block;
+        margin-top: 8px;
+        font-size: 24px;
+        line-height: 1.15;
+        letter-spacing: 0;
+      }
+
+      .summary-card span {
+        display: block;
+        margin-top: 7px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .chart-panel {
+        overflow: hidden;
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        border-bottom: 1px solid var(--line);
+        padding: 18px 20px;
+      }
+
+      .panel-head h2 {
+        font-size: 20px;
+        line-height: 1.2;
+        letter-spacing: 0;
+      }
+
+      .panel-head p {
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .segment {
+        display: inline-flex;
+        overflow: hidden;
+        flex: 0 0 auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfcfa;
+      }
+
+      .segment button {
+        min-height: 36px;
+        border: 0;
+        border-right: 1px solid var(--line);
+        padding: 0 12px;
+        color: var(--muted);
+        background: transparent;
+        cursor: pointer;
+      }
+
+      .segment button:last-child {
+        border-right: 0;
+      }
+
+      .segment button.is-active {
+        color: #fff;
+        background: var(--primary);
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 18px;
+        align-items: center;
+        padding: 16px 20px 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+
+      .swatch {
+        width: 18px;
+        height: 10px;
+        border-radius: 2px;
+        background: var(--line);
+      }
+
+      .swatch.price {
+        height: 3px;
+        background: var(--primary);
+      }
+
+      .swatch.volume {
+        background: rgba(60, 111, 159, 0.34);
+      }
+
+      .swatch.conversion {
+        background: rgba(189, 98, 57, 0.74);
+      }
+
+      .swatch.pressure {
+        background: rgba(169, 54, 50, 0.14);
+      }
+
+      .chart-wrap {
+        padding: 14px 20px 20px;
+      }
+
+      .chart-frame {
+        min-height: 440px;
+        overflow: auto hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .chart-frame svg {
+        display: block;
+        width: 100%;
+        min-width: 980px;
+        height: auto;
+      }
+
+      .data-state {
+        display: grid;
+        min-height: 180px;
+        place-items: center;
+        padding: 24px;
+        color: var(--muted);
+        font-size: 14px;
+        text-align: center;
+      }
+
+      .data-state.is-error {
+        color: var(--red);
+      }
+
+      .grid-line {
+        stroke: var(--line);
+        stroke-dasharray: 4 4;
+      }
+
+      .axis {
+        stroke: #aeb9b4;
+      }
+
+      .axis-text {
+        fill: var(--muted);
+        font-size: 12px;
+      }
+
+      .price-line {
+        fill: none;
+        stroke: var(--primary);
+        stroke-width: 3;
+      }
+
+      .price-avg-line {
+        fill: none;
+        stroke: #7e8a84;
+        stroke-dasharray: 7 5;
+        stroke-width: 2;
+      }
+
+      .pressure-label {
+        fill: #7a381f;
+        font-size: 12px;
+        font-weight: 760;
+      }
+
+      .connector {
+        fill: none;
+        stroke: var(--red);
+        stroke-width: 2;
+        stroke-dasharray: 5 5;
+        marker-end: url(#arrow);
+      }
+
+      .relation-strip {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1px;
+        margin-top: 18px;
+        overflow: hidden;
+        background: var(--line);
+      }
+
+      .relation-step {
+        min-height: 108px;
+        padding: 16px;
+        background: #fbfcfa;
+      }
+
+      .relation-step strong {
+        display: block;
+        font-size: 15px;
+        line-height: 1.3;
+      }
+
+      .relation-step p {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .table-panel {
+        margin-top: 18px;
+        overflow: hidden;
+      }
+
+      .table-wrap {
+        overflow: auto;
+        max-height: 430px;
+      }
+
+      table {
+        width: 100%;
+        min-width: 1040px;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        border-top: 1px solid var(--line);
+        padding: 12px 14px;
+        text-align: left;
+        white-space: nowrap;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        color: var(--muted);
+        background: #fbfcfa;
+        font-size: 13px;
+      }
+
+      td {
+        font-size: 14px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .signal {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        border-radius: 999px;
+        padding: 3px 8px;
+        color: #7a381f;
+        background: #fff0e7;
+        font-size: 12px;
+        font-weight: 760;
+      }
+
+      .signal.neutral {
+        color: var(--primary-dark);
+        background: #e5f0ec;
+      }
+
+      .event-row {
+        background: #fffaf6;
+      }
+
+      @media (max-width: 900px) {
+        .topbar,
+        .panel-head {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .summary-grid,
+        .relation-strip {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 560px) {
+        .shell {
+          width: calc(100% - 20px);
+          padding: 20px 0;
+        }
+
+        .summary-grid,
+        .relation-strip {
+          grid-template-columns: 1fr;
+        }
+
+        .chart-wrap {
+          padding: 12px 12px 16px;
+        }
+
+        .panel-head,
+        .legend {
+          padding-right: 14px;
+          padding-left: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 19V5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <path d="M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <path d="M7 14l3-3 3 2 5-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
+          <div>
+            <h1>ST龙大转股压力关系 Demo</h1>
+            <p class="subtitle">真实样本：正股 ST龙大 002726，转债 128119。行情取自深交所行情接口，转股数据取自深交所可转债转股统计。</p>
+          </div>
+        </div>
+        <span class="badge" id="dataBadge">正在加载真实数据源</span>
+      </header>
+
+      <section class="panel summary-grid" aria-label="压力摘要">
+        <div class="summary-card">
+          <p>最大新增转股日</p>
+          <strong id="peakDate">-</strong>
+          <span id="peakConversion">-</span>
+        </div>
+        <div class="summary-card">
+          <p>峰值后 5 日股价</p>
+          <strong id="postMove">-</strong>
+          <span id="postClose">-</span>
+        </div>
+        <div class="summary-card">
+          <p>峰值日成交量</p>
+          <strong id="volumeSpike">-</strong>
+          <span>相对前 5 日均量，低于 1 表示承接不足</span>
+        </div>
+        <div class="summary-card">
+          <p>滞后相关性</p>
+          <strong id="lagCorrelation">-</strong>
+          <span>新增转股 vs 次日收益</span>
+        </div>
+      </section>
+
+      <section class="panel chart-panel">
+        <div class="panel-head">
+          <div>
+            <h2>同轴量价转股图</h2>
+            <p>红色背景标出新增转股显著放大且股价下跌的压力窗口；虚线箭头显示从转股峰值到后续股价变化的滞后观察。</p>
+          </div>
+          <div class="segment" aria-label="图表视图">
+            <button class="is-active" type="button" data-mode="all">全量</button>
+            <button type="button" data-mode="pressure">压力窗口</button>
+          </div>
+        </div>
+
+        <div class="legend" aria-label="图例">
+          <span class="legend-item"><span class="swatch price"></span>正股收盘价</span>
+          <span class="legend-item"><span class="swatch volume"></span>正股成交量</span>
+          <span class="legend-item"><span class="swatch conversion"></span>每日新增转股数量</span>
+          <span class="legend-item"><span class="swatch pressure"></span>潜在压制窗口</span>
+        </div>
+
+        <div class="chart-wrap">
+          <div class="chart-frame" id="chart"></div>
+
+          <div class="relation-strip" aria-label="因果假设链">
+            <div class="relation-step">
+              <strong>1. 转股数量异常放大</strong>
+              <p>债券持有人转成股票，潜在可卖股份增加，供应压力开始抬升。</p>
+            </div>
+            <div class="relation-step">
+              <strong>2. 观察量能承接</strong>
+              <p>市场需要足够成交量吸收新增筹码；若巨量转股时成交不足，价格更容易下移。</p>
+            </div>
+            <div class="relation-step">
+              <strong>3. 收盘价走弱或反弹乏力</strong>
+              <p>同日或后续 1 至 5 日出现负收益，构成“压制”线索。</p>
+            </div>
+            <div class="relation-step">
+              <strong>4. 用滞后窗口验证</strong>
+              <p>重点看峰值后几天，而不是把同日相关性直接当成因果。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel table-panel">
+        <div class="panel-head">
+          <div>
+            <h2>关键交易日</h2>
+            <p>仅展示新增转股明显放大的日期和被模型标记的压力窗口。</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>交易日期</th>
+                <th>正股收盘价</th>
+                <th>涨跌幅</th>
+                <th>正股成交量(万股)</th>
+                <th>成交额(万元)</th>
+                <th>新增转股(万股)</th>
+                <th>转股价</th>
+                <th>量能倍数</th>
+                <th>信号</th>
+                <th>观察结论</th>
+              </tr>
+            </thead>
+            <tbody id="keyRows"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const demoConfig = {
+        stockCode: "002726",
+        bondCode: "128119",
+        startDate: "2026-04-01",
+      };
+
+      const chart = document.querySelector("#chart");
+      const keyRows = document.querySelector("#keyRows");
+      const modeButtons = document.querySelectorAll("[data-mode]");
+      const dataBadge = document.querySelector("#dataBadge");
+      const subtitle = document.querySelector(".subtitle");
+      let rows = [];
+      let activeMode = "all";
+
+      function format(value, digits = 2) {
+        return Number(value).toLocaleString("zh-CN", {
+          minimumFractionDigits: digits,
+          maximumFractionDigits: digits,
+        });
+      }
+
+      function movingAverage(rows, index, field, windowSize) {
+        const start = Math.max(0, index - windowSize + 1);
+        const sample = rows.slice(start, index + 1);
+        return sample.reduce((total, row) => total + row[field], 0) / sample.length;
+      }
+
+      function correlation(xValues, yValues) {
+        const pairs = xValues
+          .map((x, index) => [x, yValues[index]])
+          .filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y));
+        const xAvg = pairs.reduce((total, [x]) => total + x, 0) / pairs.length;
+        const yAvg = pairs.reduce((total, [, y]) => total + y, 0) / pairs.length;
+        const numerator = pairs.reduce((total, [x, y]) => total + (x - xAvg) * (y - yAvg), 0);
+        const xDenominator = Math.sqrt(pairs.reduce((total, [x]) => total + (x - xAvg) ** 2, 0));
+        const yDenominator = Math.sqrt(pairs.reduce((total, [, y]) => total + (y - yAvg) ** 2, 0));
+        return numerator / (xDenominator * yDenominator || 1);
+      }
+
+      function enrichRows(rows) {
+        return rows.map((row, index) => {
+          const previous = rows[index - 1] || row;
+          const avgVolume = movingAverage(rows, Math.max(index - 1, 0), "volume", 5);
+          const avgAmount = movingAverage(rows, Math.max(index - 1, 0), "amount", 5);
+          const avgConversion = movingAverage(rows, Math.max(index - 1, 0), "conversion", 5);
+          const dayReturn = (row.close - previous.close) / previous.close;
+          const volumeRatio = avgVolume ? row.volume / avgVolume : 1;
+          const amountRatio = avgAmount ? row.amount / avgAmount : 1;
+          const conversionRatio = avgConversion ? row.conversion / avgConversion : 1;
+          const isHighConversion = row.conversion >= 100 || conversionRatio >= 4;
+          const isPriceWeak = row.pctChange <= -3 || dayReturn <= -0.03;
+          const isPressure =
+            isHighConversion &&
+            isPriceWeak;
+
+          return {
+            ...row,
+            dayReturn,
+            volumeRatio,
+            amountRatio,
+            conversionRatio,
+            isPressure,
+          };
+        });
+      }
+
+      function setLoadingState(text) {
+        dataBadge.textContent = text;
+        chart.innerHTML = `<div class="data-state">${text}</div>`;
+        keyRows.replaceChildren();
+      }
+
+      function setErrorState(message) {
+        dataBadge.textContent = "真实数据源加载失败";
+        chart.innerHTML = `<div class="data-state is-error">${message}</div>`;
+        keyRows.replaceChildren();
+      }
+
+      async function loadRealData() {
+        setLoadingState("正在从官方数据源读取数据...");
+
+        try {
+          const params = new URLSearchParams({
+            stock: demoConfig.stockCode,
+            bond: demoConfig.bondCode,
+            start: demoConfig.startDate,
+          });
+          const response = await fetch(`/api/conversion-pressure?${params}`);
+          const payload = await response.json();
+
+          if (!response.ok) {
+            throw new Error(payload.error || "真实数据源读取失败");
+          }
+
+          rows = enrichRows(payload.rows || []);
+          subtitle.textContent =
+            `真实样本：正股 ${payload.stockName} ${payload.stockCode}，转债 ${payload.bondName} ${payload.bondCode}。行情和转股统计均由官方数据源实时读取。`;
+          dataBadge.textContent = `真实数据源 · ${payload.startDate} 至 ${payload.endDate}`;
+          renderSummary(payload);
+          renderChart(activeMode);
+          renderTable();
+        } catch (error) {
+          setErrorState(error.message || "真实数据源读取失败");
+        }
+      }
+
+      function renderSummary(payload) {
+        if (rows.length === 0) {
+          return;
+        }
+        const peak = rows.reduce((best, row) => (row.conversion > best.conversion ? row : best));
+        const peakIndex = rows.findIndex((row) => row.date === peak.date);
+        const post = rows[Math.min(rows.length - 1, peakIndex + 5)];
+        const postMove = ((post.close - peak.close) / peak.close) * 100;
+        const nextDayReturns = rows.slice(0, -1).map((row, index) => {
+          const next = rows[index + 1];
+          return (next.close - row.close) / row.close;
+        });
+        const corr = correlation(
+          rows.slice(0, -1).map((row) => row.conversion),
+          nextDayReturns,
+        );
+
+        document.querySelector("#peakDate").textContent = peak.date.slice(5);
+        document.querySelector("#peakConversion").textContent =
+          `${payload?.bondName || demoConfig.bondCode} 新增转股 ${format(peak.conversion)} 万股，转股价 ${peak.conversionPrice?.toFixed(2) || "-"} 元`;
+        document.querySelector("#postMove").textContent = `${postMove >= 0 ? "+" : ""}${postMove.toFixed(2)}%`;
+        document.querySelector("#postClose").textContent = `${post.date.slice(5)} 收盘 ${post.close.toFixed(2)} 元`;
+        document.querySelector("#volumeSpike").textContent = `${peak.volumeRatio.toFixed(2)}x`;
+        document.querySelector("#lagCorrelation").textContent = corr.toFixed(2);
+      }
+
+      function renderChart(mode = "all") {
+        const visibleRows =
+          mode === "pressure"
+            ? rows.filter((row, index) => row.isPressure || rows[index - 1]?.isPressure || rows[index + 1]?.isPressure)
+            : rows;
+        if (visibleRows.length === 0) {
+          chart.innerHTML = '<div class="data-state">暂无可绘制的数据</div>';
+          return;
+        }
+        const width = 1080;
+        const height = 440;
+        const margin = { top: 30, right: 66, bottom: 66, left: 62 };
+        const innerWidth = width - margin.left - margin.right;
+        const innerHeight = height - margin.top - margin.bottom;
+        const priceMin = Math.min(...visibleRows.map((row) => row.close)) * 0.985;
+        const priceMax = Math.max(...visibleRows.map((row) => row.close)) * 1.015;
+        const volumeMax = Math.max(1, ...visibleRows.map((row) => row.volume));
+        const conversionMax = Math.max(1, ...visibleRows.map((row) => row.conversion));
+        const band = innerWidth / visibleRows.length;
+
+        const x = (index) => margin.left + (innerWidth * index) / Math.max(1, visibleRows.length - 1);
+        const yPrice = (value) =>
+          margin.top + innerHeight - ((value - priceMin) / (priceMax - priceMin)) * innerHeight;
+        const yVolume = (value) => margin.top + innerHeight - (value / volumeMax) * innerHeight * 0.42;
+        const yConversion = (value) =>
+          margin.top + innerHeight - (value / conversionMax) * innerHeight * 0.78;
+
+        const pricePath = visibleRows
+          .map((row, index) => `${index === 0 ? "M" : "L"} ${x(index)} ${yPrice(row.close)}`)
+          .join(" ");
+        const avgPath = visibleRows
+          .map((row, index) => {
+            const avg = movingAverage(visibleRows, index, "close", 5);
+            return `${index === 0 ? "M" : "L"} ${x(index)} ${yPrice(avg)}`;
+          })
+          .join(" ");
+        const gridValues = Array.from({ length: 5 }, (_, index) => priceMin + ((priceMax - priceMin) * index) / 4);
+        const pressureIndexes = visibleRows
+          .map((row, index) => (row.isPressure ? index : -1))
+          .filter((index) => index >= 0);
+        const peakIndex = visibleRows.findIndex(
+          (row) => row.conversion === Math.max(...visibleRows.map((item) => item.conversion)),
+        );
+        const lagIndex = Math.min(visibleRows.length - 1, peakIndex + 3);
+
+        chart.innerHTML = `
+          <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="正股收盘价、成交量和新增转股数量同轴图">
+            <defs>
+              <marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+                <path d="M0,0 L9,4.5 L0,9 z" fill="#a93632"></path>
+              </marker>
+            </defs>
+            ${visibleRows
+              .map((row, index) =>
+                row.isPressure
+                  ? `<rect x="${x(index) - band / 2}" y="${margin.top}" width="${band}" height="${innerHeight}" fill="rgba(169, 54, 50, 0.14)" />`
+                  : "",
+              )
+              .join("")}
+            ${gridValues
+              .map(
+                (value) => `
+                  <line class="grid-line" x1="${margin.left}" x2="${width - margin.right}" y1="${yPrice(value)}" y2="${yPrice(value)}"></line>
+                  <text class="axis-text" x="${margin.left - 10}" y="${yPrice(value) + 4}" text-anchor="end">${value.toFixed(2)}</text>
+                `,
+              )
+              .join("")}
+            <line class="axis" x1="${margin.left}" x2="${width - margin.right}" y1="${margin.top + innerHeight}" y2="${margin.top + innerHeight}"></line>
+            ${visibleRows
+              .map((row, index) => {
+                const barHeight = margin.top + innerHeight - yVolume(row.volume);
+                return `<rect x="${x(index) - band * 0.34}" y="${yVolume(row.volume)}" width="${band * 0.26}" height="${barHeight}" rx="2" fill="rgba(60, 111, 159, 0.34)"></rect>`;
+              })
+              .join("")}
+            ${visibleRows
+              .map((row, index) => {
+                const barHeight = margin.top + innerHeight - yConversion(row.conversion);
+                return `<rect x="${x(index) + band * 0.06}" y="${yConversion(row.conversion)}" width="${band * 0.28}" height="${barHeight}" rx="2" fill="rgba(189, 98, 57, 0.74)"></rect>`;
+              })
+              .join("")}
+            <path class="price-avg-line" d="${avgPath}"></path>
+            <path class="price-line" d="${pricePath}"></path>
+            ${visibleRows
+              .map((row, index) => `<circle cx="${x(index)}" cy="${yPrice(row.close)}" r="3.4" fill="#176b5d"></circle>`)
+              .join("")}
+            ${pressureIndexes
+              .map((index) => `<text class="pressure-label" x="${x(index)}" y="${margin.top + 16}" text-anchor="middle">压力</text>`)
+              .join("")}
+            ${
+              peakIndex >= 0 && lagIndex > peakIndex
+                ? `<path class="connector" d="M ${x(peakIndex)} ${yConversion(visibleRows[peakIndex].conversion) - 12} C ${x(peakIndex) + 48} ${yConversion(visibleRows[peakIndex].conversion) - 54}, ${x(lagIndex) - 48} ${yPrice(visibleRows[lagIndex].close) - 42}, ${x(lagIndex)} ${yPrice(visibleRows[lagIndex].close) - 10}"></path>
+                   <text class="pressure-label" x="${(x(peakIndex) + x(lagIndex)) / 2}" y="${Math.min(yConversion(visibleRows[peakIndex].conversion), yPrice(visibleRows[lagIndex].close)) - 46}" text-anchor="middle">滞后观察</text>`
+                : ""
+            }
+            ${visibleRows
+              .map((row, index) =>
+                index % Math.max(1, Math.ceil(visibleRows.length / 8)) === 0
+                  ? `<text class="axis-text" x="${x(index)}" y="${height - 26}" text-anchor="middle">${row.date.slice(5)}</text>`
+                  : "",
+              )
+              .join("")}
+            <text class="axis-text" x="${margin.left - 42}" y="${margin.top - 10}">价格(元)</text>
+            <text class="axis-text" x="${width - margin.right}" y="${margin.top - 10}" text-anchor="end">柱形：成交量 / 新增转股</text>
+          </svg>
+        `;
+      }
+
+      function renderTable() {
+        keyRows.replaceChildren();
+        if (rows.length === 0) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 10;
+          td.textContent = "暂无关键交易日数据";
+          tr.appendChild(td);
+          keyRows.appendChild(tr);
+          return;
+        }
+        rows
+          .filter((row) => row.isPressure || row.conversionFaceAmount > 0 || Math.abs(row.pctChange) >= 5)
+          .forEach((row) => {
+            const tr = document.createElement("tr");
+            tr.className = row.isPressure ? "event-row" : "";
+            const values = [
+              row.date,
+              row.close.toFixed(2),
+              `${row.pctChange >= 0 ? "+" : ""}${row.pctChange.toFixed(2)}%`,
+              format(row.volume, 0),
+              format(row.amount, 0),
+              format(row.conversion),
+              row.conversionPrice ? row.conversionPrice.toFixed(2) : "-",
+              `${row.volumeRatio.toFixed(2)}x`,
+            ];
+
+            values.forEach((value) => {
+              const td = document.createElement("td");
+              td.textContent = value;
+              tr.appendChild(td);
+            });
+
+            const signalTd = document.createElement("td");
+            const signal = document.createElement("span");
+            signal.className = row.isPressure ? "signal" : "signal neutral";
+            signal.textContent = row.isPressure
+              ? "压力窗口"
+              : row.conversionFaceAmount > 0
+                ? "转股记录"
+                : "价格异动";
+            signalTd.appendChild(signal);
+            tr.appendChild(signalTd);
+
+            const noteTd = document.createElement("td");
+            noteTd.textContent = row.isPressure
+              ? row.volumeRatio < 1
+                ? "巨量转股叠加下跌，成交量低于近 5 日均量，呈现承接不足。"
+                : "巨量转股、成交放大和股价下跌同时出现。"
+              : row.conversionFaceAmount > 0
+                ? "官方转股统计有记录，但规模较小或价格未同步走弱。"
+                : "股价单日波动较大，用作对照观察。";
+            tr.appendChild(noteTd);
+
+            keyRows.appendChild(tr);
+          });
+      }
+
+      modeButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          modeButtons.forEach((item) => item.classList.remove("is-active"));
+          button.classList.add("is-active");
+          activeMode = button.dataset.mode;
+          renderChart(activeMode);
+        });
+      });
+
+      loadRealData();
+    </script>
+  </body>
+</html>
