@@ -268,7 +268,7 @@
       .suggestion {
         display: grid;
         width: 100%;
-        grid-template-columns: 74px minmax(0, 1fr) auto;
+        grid-template-columns: 78px minmax(0, 1fr) auto;
         gap: 10px;
         align-items: center;
         min-height: 46px;
@@ -298,6 +298,25 @@
 
       .suggestion-name {
         overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .suggestion.has-detail {
+        min-height: 54px;
+      }
+
+      .suggestion-main {
+        display: grid;
+        min-width: 0;
+        gap: 3px;
+      }
+
+      .suggestion-detail {
+        overflow: hidden;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.3;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
@@ -761,7 +780,7 @@
                   id="floorSecurityInput"
                   inputmode="search"
                   maxlength="20"
-                  placeholder="输入 6 位代码或名称"
+                  placeholder="输入正股/转债代码或名称"
                   aria-controls="floorSuggestions"
                   aria-expanded="false"
                 />
@@ -873,26 +892,42 @@
 
             <div class="field">
               <label for="pressureStockInput">正股代码</label>
-              <input
-                class="control"
-                id="pressureStockInput"
-                inputmode="numeric"
-                maxlength="6"
-                placeholder="例如 002726 或 600745"
-                value="002726"
-              />
+              <div class="search-wrap">
+                <input
+                  class="control search-input"
+                  id="pressureStockInput"
+                  inputmode="search"
+                  maxlength="20"
+                  placeholder="输入正股代码或名称"
+                  aria-controls="pressureStockSuggestions"
+                  aria-expanded="false"
+                />
+                <div
+                  class="suggestions"
+                  id="pressureStockSuggestions"
+                  role="listbox"
+                ></div>
+              </div>
             </div>
 
             <div class="field">
               <label for="pressureBondInput">转债代码</label>
-              <input
-                class="control"
-                id="pressureBondInput"
-                inputmode="numeric"
-                maxlength="6"
-                placeholder="例如 128119 或 110081"
-                value="128119"
-              />
+              <div class="search-wrap">
+                <input
+                  class="control search-input"
+                  id="pressureBondInput"
+                  inputmode="search"
+                  maxlength="20"
+                  placeholder="输入转债代码或名称"
+                  aria-controls="pressureBondSuggestions"
+                  aria-expanded="false"
+                />
+                <div
+                  class="suggestions"
+                  id="pressureBondSuggestions"
+                  role="listbox"
+                ></div>
+              </div>
             </div>
 
             <div class="field">
@@ -901,7 +936,6 @@
                 class="control"
                 id="pressureStartInput"
                 type="date"
-                value="2026-04-01"
               />
             </div>
 
@@ -1024,16 +1058,37 @@
       const appState = {
         securities: [],
         selectedSecurity: null,
+        selectedPressureStock: null,
+        selectedPressureBond: null,
         pressureRows: [],
         chartMode: "all",
       };
 
+      function formatDateInputValue(date) {
+        return [
+          date.getFullYear(),
+          String(date.getMonth() + 1).padStart(2, "0"),
+          String(date.getDate()).padStart(2, "0"),
+        ].join("-");
+      }
+
+      function addMonthsClamped(date, months) {
+        const next = new Date(date);
+        const day = next.getDate();
+        next.setDate(1);
+        next.setMonth(next.getMonth() + months);
+        const lastDay = new Date(
+          next.getFullYear(),
+          next.getMonth() + 1,
+          0,
+        ).getDate();
+        next.setDate(Math.min(day, lastDay));
+        return next;
+      }
+
       const today = new Date();
-      const todayText = [
-        today.getFullYear(),
-        String(today.getMonth() + 1).padStart(2, "0"),
-        String(today.getDate()).padStart(2, "0"),
-      ].join("-");
+      const todayText = formatDateInputValue(today);
+      const oneMonthAgoText = formatDateInputValue(addMonthsClamped(today, -1));
 
       const tabs = document.querySelectorAll(".tab");
       const views = document.querySelectorAll(".view");
@@ -1051,6 +1106,12 @@
       const pressureForm = document.querySelector("#pressureForm");
       const pressureStockInput = document.querySelector("#pressureStockInput");
       const pressureBondInput = document.querySelector("#pressureBondInput");
+      const pressureStockSuggestions = document.querySelector(
+        "#pressureStockSuggestions",
+      );
+      const pressureBondSuggestions = document.querySelector(
+        "#pressureBondSuggestions",
+      );
       const pressureStartInput = document.querySelector("#pressureStartInput");
       const pressureButton = document.querySelector("#pressureButton");
       const pressureMessage = document.querySelector("#pressureMessage");
@@ -1062,6 +1123,7 @@
       const chartModeButtons = document.querySelectorAll("[data-chart-mode]");
 
       floorDateInput.value = todayText;
+      pressureStartInput.value = oneMonthAgoText;
 
       function setMessage(node, text, type = "info") {
         node.textContent = text;
@@ -1104,7 +1166,18 @@
             .map((item) => ({
               code: String(item.code),
               name: String(item.name),
+              exchange: item.exchange || "",
+              bonds: Array.isArray(item.bonds)
+                ? item.bonds
+                    .filter((bond) => bond && bond.code && bond.name)
+                    .map((bond) => ({
+                      code: String(bond.code),
+                      name: String(bond.name),
+                      exchange: bond.exchange || "",
+                    }))
+                : [],
             }));
+          syncPressureSelections();
         } catch (error) {
           setMessage(
             floorMessage,
@@ -1114,24 +1187,401 @@
         }
       }
 
+      function getBonds(item) {
+        return Array.isArray(item.bonds) ? item.bonds : [];
+      }
+
+      function lowerText(value) {
+        return String(value || "").toLowerCase();
+      }
+
+      function marketLabel(exchange) {
+        if (exchange === "SSE") {
+          return "沪市";
+        }
+        if (exchange === "SZSE") {
+          return "深市";
+        }
+        return "正股";
+      }
+
+      function findExactSecurity(value) {
+        const keyword = lowerText(value.trim());
+        if (!keyword) {
+          return null;
+        }
+        return (
+          appState.securities.find(
+            (item) =>
+              lowerText(item.code) === keyword ||
+              lowerText(item.name) === keyword ||
+              getBonds(item).some(
+                (bond) =>
+                  lowerText(bond.code) === keyword ||
+                  lowerText(bond.name) === keyword,
+              ),
+          ) || null
+        );
+      }
+
+      function bondEntries(stocks = appState.securities) {
+        return stocks.flatMap((stock) =>
+          getBonds(stock).map((bond) => ({
+            stock,
+            bond,
+          })),
+        );
+      }
+
+      function findExactPressureStock(value) {
+        const keyword = lowerText(value.trim());
+        if (!keyword) {
+          return null;
+        }
+        return (
+          appState.securities.find(
+            (stock) =>
+              lowerText(stock.code) === keyword ||
+              lowerText(stock.name) === keyword,
+          ) || null
+        );
+      }
+
+      function findExactPressureBond(value) {
+        const keyword = lowerText(value.trim());
+        if (!keyword) {
+          return null;
+        }
+        return (
+          bondEntries().find(
+            ({ bond }) =>
+              lowerText(bond.code) === keyword ||
+              lowerText(bond.name) === keyword,
+          ) || null
+        );
+      }
+
+      function activePressureStock() {
+        const exact = findExactPressureStock(pressureStockInput.value);
+        if (exact) {
+          return exact;
+        }
+        if (
+          appState.selectedPressureStock &&
+          (pressureStockInput.value.trim() ===
+            appState.selectedPressureStock.code ||
+            pressureStockInput.value.trim() ===
+              appState.selectedPressureStock.name)
+        ) {
+          return appState.selectedPressureStock;
+        }
+        return null;
+      }
+
+      function pressureStockMatches(stock, keyword) {
+        return (
+          lowerText(stock.code).includes(keyword) ||
+          lowerText(stock.name).includes(keyword)
+        );
+      }
+
+      function findPressureStockMatches(value) {
+        const keyword = lowerText(value.trim());
+        if (!keyword) {
+          return appState.securities;
+        }
+        return appState.securities.filter((stock) =>
+          pressureStockMatches(stock, keyword),
+        );
+      }
+
+      function bondMatchScore(entry, keyword) {
+        const bondCode = lowerText(entry.bond.code);
+        const bondName = lowerText(entry.bond.name);
+        const stockCode = lowerText(entry.stock.code);
+        const stockName = lowerText(entry.stock.name);
+
+        if (bondCode === keyword) {
+          return 0;
+        }
+        if (bondCode.startsWith(keyword)) {
+          return 1;
+        }
+        if (bondName.includes(keyword)) {
+          return 2;
+        }
+        if (stockCode.startsWith(keyword)) {
+          return 3;
+        }
+        if (stockName.includes(keyword)) {
+          return 4;
+        }
+        return Number.POSITIVE_INFINITY;
+      }
+
+      function findPressureBondMatches(value) {
+        const keyword = lowerText(value.trim());
+        const stock = activePressureStock();
+        if (!keyword) {
+          return bondEntries(stock ? [stock] : appState.securities);
+        }
+
+        const scoreEntries = (source) =>
+          source
+          .map((entry) => ({
+            ...entry,
+            score: bondMatchScore(entry, keyword),
+          }))
+          .filter((entry) => Number.isFinite(entry.score))
+          .sort(
+            (a, b) =>
+              a.score - b.score ||
+              a.bond.code.localeCompare(b.bond.code),
+          );
+        return scoreEntries(bondEntries());
+      }
+
+      function findPressureBondFocusMatches() {
+        const stock = activePressureStock();
+        if (stock) {
+          return bondEntries([stock]);
+        }
+        return findPressureBondMatches(pressureBondInput.value);
+      }
+
+      function closeSuggestionNode(suggestions, input) {
+        suggestions.classList.remove("is-open");
+        input.setAttribute("aria-expanded", "false");
+      }
+
+      function closeAllSuggestions() {
+        closeSuggestionNode(floorSuggestions, floorSecurityInput);
+        closeSuggestionNode(pressureStockSuggestions, pressureStockInput);
+        closeSuggestionNode(pressureBondSuggestions, pressureBondInput);
+      }
+
+      function syncPressureSelections() {
+        const stock = findExactPressureStock(pressureStockInput.value);
+        const bondEntry = findExactPressureBond(pressureBondInput.value);
+        if (stock) {
+          appState.selectedPressureStock = stock;
+        }
+        if (bondEntry) {
+          appState.selectedPressureBond = bondEntry;
+          if (!stock || stock.code !== bondEntry.stock.code) {
+            appState.selectedPressureStock = bondEntry.stock;
+            pressureStockInput.value = bondEntry.stock.code;
+          }
+        }
+      }
+
+      function choosePressureStock(stock) {
+        appState.selectedPressureStock = stock;
+        pressureStockInput.value = stock.code;
+        closeSuggestionNode(pressureStockSuggestions, pressureStockInput);
+
+        const bonds = getBonds(stock);
+        const currentBond = findExactPressureBond(pressureBondInput.value);
+        if (currentBond && currentBond.stock.code === stock.code) {
+          appState.selectedPressureBond = currentBond;
+          return;
+        }
+
+        if (bonds.length > 0) {
+          defaultPressureBondForStock(stock);
+          closeAllSuggestions();
+          return;
+        }
+
+        appState.selectedPressureBond = null;
+        pressureBondInput.value = "";
+        renderPressureBondSuggestions(findPressureBondMatches(""));
+        pressureBondInput.focus();
+      }
+
+      function defaultPressureBondForStock(stock) {
+        const bonds = getBonds(stock);
+        const currentBond = findExactPressureBond(pressureBondInput.value);
+        if (currentBond && currentBond.stock.code === stock.code) {
+          appState.selectedPressureBond = currentBond;
+          return;
+        }
+        if (bonds.length > 0) {
+          appState.selectedPressureBond = { stock, bond: bonds[0] };
+          pressureBondInput.value = bonds[0].code;
+        }
+      }
+
+      function choosePressureBond(entry) {
+        appState.selectedPressureBond = entry;
+        appState.selectedPressureStock = entry.stock;
+        pressureBondInput.value = entry.bond.code;
+        pressureStockInput.value = entry.stock.code;
+        closeAllSuggestions();
+      }
+
+      function renderPressureStockSuggestions(stocks) {
+        pressureStockSuggestions.replaceChildren();
+        stocks.forEach((stock) => {
+          const option = document.createElement("button");
+          const code = document.createElement("span");
+          const name = document.createElement("span");
+          const tag = document.createElement("span");
+
+          option.type = "button";
+          option.className = "suggestion";
+          option.setAttribute("role", "option");
+
+          code.className = "suggestion-code";
+          code.textContent = stock.code;
+          name.className = "suggestion-name";
+          name.textContent = stock.name;
+          tag.className = "tag";
+          tag.textContent = marketLabel(stock.exchange);
+
+          option.append(code, name, tag);
+          option.addEventListener("click", () => choosePressureStock(stock));
+          pressureStockSuggestions.appendChild(option);
+        });
+
+        pressureStockSuggestions.classList.toggle("is-open", stocks.length > 0);
+        pressureStockInput.setAttribute("aria-expanded", String(stocks.length > 0));
+      }
+
+      function renderPressureBondSuggestions(entries) {
+        pressureBondSuggestions.replaceChildren();
+        entries.forEach((entry) => {
+          const option = document.createElement("button");
+          const code = document.createElement("span");
+          const main = document.createElement("span");
+          const name = document.createElement("span");
+          const detail = document.createElement("span");
+          const tag = document.createElement("span");
+
+          option.type = "button";
+          option.className = "suggestion has-detail";
+          option.setAttribute("role", "option");
+
+          code.className = "suggestion-code";
+          code.textContent = entry.bond.code;
+          main.className = "suggestion-main";
+          name.className = "suggestion-name";
+          name.textContent = entry.bond.name;
+          detail.className = "suggestion-detail";
+          detail.textContent = `${entry.stock.code} ${entry.stock.name}`;
+          tag.className = "tag";
+          tag.textContent = marketLabel(entry.bond.exchange || entry.stock.exchange);
+
+          main.append(name, detail);
+          option.append(code, main, tag);
+          option.addEventListener("click", () => choosePressureBond(entry));
+          pressureBondSuggestions.appendChild(option);
+        });
+
+        pressureBondSuggestions.classList.toggle("is-open", entries.length > 0);
+        pressureBondInput.setAttribute("aria-expanded", String(entries.length > 0));
+      }
+
+      function resolvePressureStockCode() {
+        const exact = findExactPressureStock(pressureStockInput.value);
+        if (exact) {
+          appState.selectedPressureStock = exact;
+          return exact.code;
+        }
+        if (
+          appState.selectedPressureStock &&
+          (pressureStockInput.value.trim() ===
+            appState.selectedPressureStock.code ||
+            pressureStockInput.value.trim() ===
+              appState.selectedPressureStock.name)
+        ) {
+          return appState.selectedPressureStock.code;
+        }
+        const entered = pressureStockInput.value.trim();
+        return /^\d{6}$/.test(entered) ? entered : "";
+      }
+
+      function resolvePressureBondCode() {
+        const exact = findExactPressureBond(pressureBondInput.value);
+        if (exact) {
+          appState.selectedPressureBond = exact;
+          appState.selectedPressureStock = exact.stock;
+          pressureBondInput.value = exact.bond.code;
+          pressureStockInput.value = exact.stock.code;
+          return exact.bond.code;
+        }
+        if (
+          appState.selectedPressureBond &&
+          (pressureBondInput.value.trim() ===
+            appState.selectedPressureBond.bond.code ||
+            pressureBondInput.value.trim() ===
+              appState.selectedPressureBond.bond.name)
+        ) {
+          return appState.selectedPressureBond.bond.code;
+        }
+        const entered = pressureBondInput.value.trim();
+        return /^\d{6}$/.test(entered) ? entered : "";
+      }
+
+      function matchScore(item, keyword, matchedBond) {
+        const code = lowerText(item.code);
+        const name = lowerText(item.name);
+        if (code === keyword) {
+          return 0;
+        }
+        if (matchedBond && lowerText(matchedBond.code) === keyword) {
+          return 1;
+        }
+        if (code.startsWith(keyword)) {
+          return 2;
+        }
+        if (name.includes(keyword)) {
+          return 3;
+        }
+        if (matchedBond && lowerText(matchedBond.code).startsWith(keyword)) {
+          return 4;
+        }
+        if (matchedBond) {
+          return 5;
+        }
+        return Number.POSITIVE_INFINITY;
+      }
+
       function findMatches(value) {
         const keyword = value.trim().toLowerCase();
         const source = appState.securities;
         if (!keyword) {
-          return source.slice(0, 8);
+          return source.map((item) => ({
+            item,
+            matchedBond: null,
+          }));
         }
+
         return source
-          .filter(
-            (item) =>
-              item.code.includes(keyword) ||
-              item.name.toLowerCase().includes(keyword),
-          )
-          .slice(0, 8);
+          .map((item) => {
+            const matchedBond =
+              getBonds(item).find(
+                (bond) =>
+                  lowerText(bond.code).includes(keyword) ||
+                  lowerText(bond.name).includes(keyword),
+              ) || null;
+            return {
+              item,
+              matchedBond,
+              score: matchScore(item, keyword, matchedBond),
+            };
+          })
+          .filter((match) => Number.isFinite(match.score))
+          .sort(
+            (a, b) =>
+              a.score - b.score || a.item.code.localeCompare(b.item.code),
+          );
       }
 
-      function renderSuggestions(items) {
+      function renderSuggestions(matches) {
         floorSuggestions.replaceChildren();
-        items.forEach((item) => {
+        matches.forEach((match) => {
+          const item = match.item;
           const option = document.createElement("button");
           const code = document.createElement("span");
           const name = document.createElement("span");
@@ -1146,15 +1596,15 @@
           name.className = "suggestion-name";
           name.textContent = item.name;
           tag.className = "tag";
-          tag.textContent = "正股";
+          tag.textContent = marketLabel(item.exchange);
 
           option.append(code, name, tag);
           option.addEventListener("click", () => chooseSecurity(item));
           floorSuggestions.appendChild(option);
         });
 
-        floorSuggestions.classList.toggle("is-open", items.length > 0);
-        floorSecurityInput.setAttribute("aria-expanded", String(items.length > 0));
+        floorSuggestions.classList.toggle("is-open", matches.length > 0);
+        floorSecurityInput.setAttribute("aria-expanded", String(matches.length > 0));
       }
 
       function chooseSecurity(item) {
@@ -1166,7 +1616,7 @@
 
       function resolveFloorCode() {
         const entered = floorSecurityInput.value.trim();
-        const exact = appState.securities.find((item) => item.code === entered);
+        const exact = findExactSecurity(entered);
         if (exact) {
           appState.selectedSecurity = exact;
           return exact.code;
@@ -1175,7 +1625,10 @@
         if (
           appState.selectedSecurity &&
           (entered === appState.selectedSecurity.name ||
-            entered === appState.selectedSecurity.code)
+            entered === appState.selectedSecurity.code ||
+            getBonds(appState.selectedSecurity).some(
+              (bond) => entered === bond.code || entered === bond.name,
+            ))
         ) {
           return appState.selectedSecurity.code;
         }
@@ -1264,8 +1717,8 @@
       }
 
       async function analyzePressure() {
-        const stock = pressureStockInput.value.trim();
-        const bond = pressureBondInput.value.trim();
+        const bond = resolvePressureBondCode();
+        const stock = resolvePressureStockCode();
         const start = pressureStartInput.value;
 
         if (!/^\d{6}$/.test(stock)) {
@@ -1590,7 +2043,7 @@
 
       floorSecurityInput.addEventListener("input", (event) => {
         const value = event.target.value;
-        const exact = appState.securities.find((item) => item.code === value);
+        const exact = findExactSecurity(value);
         if (exact) {
           appState.selectedSecurity = exact;
         }
@@ -1601,10 +2054,42 @@
         renderSuggestions(findMatches(floorSecurityInput.value));
       });
 
+      pressureStockInput.addEventListener("input", (event) => {
+        const value = event.target.value;
+        const exact = findExactPressureStock(value);
+        appState.selectedPressureStock = exact;
+        if (exact) {
+          defaultPressureBondForStock(exact);
+        }
+        renderPressureStockSuggestions(findPressureStockMatches(value));
+      });
+
+      pressureStockInput.addEventListener("focus", () => {
+        renderPressureStockSuggestions(
+          findPressureStockMatches(pressureStockInput.value),
+        );
+      });
+
+      pressureBondInput.addEventListener("input", (event) => {
+        const value = event.target.value;
+        const exact = findExactPressureBond(value);
+        if (exact) {
+          appState.selectedPressureBond = exact;
+          appState.selectedPressureStock = exact.stock;
+          pressureStockInput.value = exact.stock.code;
+        }
+        renderPressureBondSuggestions(findPressureBondMatches(value));
+      });
+
+      pressureBondInput.addEventListener("focus", () => {
+        renderPressureBondSuggestions(
+          findPressureBondFocusMatches(),
+        );
+      });
+
       document.addEventListener("click", (event) => {
         if (!event.target.closest(".search-wrap")) {
-          floorSuggestions.classList.remove("is-open");
-          floorSecurityInput.setAttribute("aria-expanded", "false");
+          closeAllSuggestions();
         }
       });
 
